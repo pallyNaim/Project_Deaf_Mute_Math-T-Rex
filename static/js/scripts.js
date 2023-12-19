@@ -133,3 +133,138 @@ document.addEventListener("DOMContentLoaded", function () {
         window.location.href = '/home';
     });
 });
+
+// Dummy data for initial chat messages
+var chatData = [
+    { user: 'Teacher', message: 'Welcome to the forum!', timestamp: '12:00 PM' },
+    { user: 'Student', message: 'Hi there!', timestamp: '12:05 PM' },
+    { user: 'Teacher', message: 'Let\'s discuss math topics here.', timestamp: '12:10 PM' }
+];
+
+// Function to display chat messages in the chat container
+function displayMessages() {
+    var chatContainer = document.getElementById('chat-container');
+    chatContainer.innerHTML = '';
+
+    chatData.forEach(function (message) {
+        var messageDiv = document.createElement('div');
+        messageDiv.classList.add('chat-message');
+        messageDiv.innerHTML = '<strong>' + message.user + '</strong>: ' + message.message + ' <span class="timestamp">(' + message.timestamp + ')</span>';
+        chatContainer.appendChild(messageDiv);
+    });
+
+    // Scroll to the bottom of the chat container
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// Function to send a new message
+function sendMessage() {
+    var messageInput = document.getElementById('message-input');
+    var messageText = messageInput.value.trim();
+
+    if (messageText !== '') {
+        // Get the current timestamp
+        var timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Add the new message to the chat data
+        chatData.push({ user: 'Student', message: messageText, timestamp: timestamp });
+
+        // Display the updated messages
+        displayMessages();
+
+        // Clear the message input
+        messageInput.value = '';
+    }
+}
+
+// Display initial messages on page load
+displayMessages();
+
+// Function to send an announcement
+function sendAnnouncement() {
+    const messageInput = document.getElementById('message-input');
+    const chatContainer = document.getElementById('chat-container');
+
+    // Get the message content
+    const messageContent = messageInput.value;
+
+    // Create a new message element
+    const messageElement = document.createElement('div');
+    messageElement.className = 'chat-message';
+    messageElement.innerHTML = `<p>${messageContent}</p><span class="timestamp">Just now</span>`;
+
+    // Remember the current scroll position
+    const shouldScrollToBottom = chatContainer.scrollTop + chatContainer.clientHeight === chatContainer.scrollHeight;
+
+    // Append the message to the chat container
+    chatContainer.appendChild(messageElement);
+
+    // Restore the scroll position if it was at the bottom
+    if (shouldScrollToBottom) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // Clear the input field
+    messageInput.value = '';
+}
+
+// Function to upload an image
+function uploadImage() {
+    const imageInput = document.getElementById('image-input');
+    const chatContainer = document.getElementById('chat-container');
+
+    // Get the selected image file
+    const imageFile = imageInput.files[0];
+
+    // Create a new image element
+    const imageElement = document.createElement('img');
+    imageElement.src = URL.createObjectURL(imageFile);
+    imageElement.className = 'uploaded-image';
+
+    // Remember the current scroll position
+    const shouldScrollToBottom = chatContainer.scrollTop + chatContainer.clientHeight === chatContainer.scrollHeight;
+
+    // Append the image to the chat container
+    chatContainer.appendChild(imageElement);
+
+    // Restore the scroll position if it was at the bottom
+    if (shouldScrollToBottom) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // Clear the input field
+    imageInput.value = '';
+}
+
+        function changeProfilePicture() {
+            // Implement logic to change profile picture
+            alert('Implement logic to change profile picture');
+        }
+
+        function updateName() {
+            var name = document.getElementById('name').value;
+            // Implement logic to update name
+            alert('Implement logic to update name: ' + name);
+        }
+
+        function updatePassword() {
+            var password = document.getElementById('password').value;
+            var confirmPassword = document.getElementById('confirm-password').value;
+
+            if (password === confirmPassword) {
+                // Implement logic to update password
+                alert('Implement logic to update password');
+            } else {
+                alert('Password and Confirm Password do not match. Please try again.');
+            }
+        }
+
+function showImg(id) {
+    var img = document.getElementById(id);
+    if (img.style.display === "none") {
+        img.style.display = "block";
+    } else {
+        img.style.display = "none";
+    }
+}
+
