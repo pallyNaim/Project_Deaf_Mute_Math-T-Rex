@@ -110,7 +110,26 @@ document.addEventListener("DOMContentLoaded", function () {
         // For now, let's just show an alert with the selected role
         alert('Selected Role: ' + selectedRole);
 
-        // Close the form
-        closeForm('signupForm');
+        // Redirect to /home
+        window.location.href = '/home';
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const loginForm = document.getElementById('loginForm');
+
+    loginForm.addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent the form from submitting normally
+
+        // Get the username and password (add validation if needed)
+        const username = document.getElementById('usernamelogin').value;
+        const password = document.getElementById('passwordlogin').value;
+
+        // Perform your desired action here, such as sending the login data to the server
+        // For now, let's just show an alert with the entered username and password
+        alert('Login attempt with Username: ' + username + ' and Password: ' + password);
+
+        // Redirect to /home
+        window.location.href = '/home';
     });
 });
