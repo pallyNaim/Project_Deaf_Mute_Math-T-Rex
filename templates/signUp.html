@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+{% block content %}
+    <!-- contact -->
+    <div class="contact">
+        <div class="container">
+            <div class="row ">
+                <div class="col-md-12">
+                    <div class="titlepage text_align_center">
+                        <h2>Sign Up</h2>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <form action="/signup" method="post" id="request" class="main_form">
+                        <div class="row">
+                            <div class="col-md-6 ">
+                                <input class="signup" placeholder="Username*" type="type" name="Username">
+                            </div>
+                            <div class="col-md-6">
+                                <input class="signup" placeholder="Email*" type="type" name="Email">
+                            </div>
+                            <div class="col-md-12">
+                                <input class="signup" placeholder="Password*" type="type" name="Password">
+                            </div>
+                            <div class="col-md-12 select-outline">
+                                <select class="custom-select " name="User">
+                                    <option selected>Select User*</option>
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12">
+                                <button type="submit" class="send_btn">Confirm</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <img src="/static/images/Mine/signup.gif" width="480" height="364" alt="Your GIF Description">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- contact -->
+{% endblock %}
