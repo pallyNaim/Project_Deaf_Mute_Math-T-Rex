@@ -40,6 +40,10 @@ def signup():
    # Return a response for non-POST requests
    return render_template('signUp.html')
 
+@app.route('/login') # nota
+def login():
+   return render_template('logIn.html')
+
 @app.route('/noteMoney') # nota
 def noteT():
    return render_template('noteMoney.html')
@@ -48,9 +52,21 @@ def noteT():
 def noteM():
    return render_template('noteTime.html')
 
-@app.route('/quiz') # nota
+@app.route('/quizOption')
 def quiz():
-   return render_template('quiz.html')
+    return render_template('quiz/quizOption.html')
+
+@app.route('/quizMoney')
+def quizMoney():
+    return render_template('quiz/quizMoney.html')
+
+@app.route('/quizTime')
+def quizTime():
+    return render_template('quiz/quizTime.html')
+
+@app.route('/quizOverall')
+def quizOverall():
+    return render_template('quizOverall.html')
 
 @app.route('/profile') # nota
 def profile():
@@ -59,6 +75,10 @@ def profile():
 @app.route('/achievement') # nota
 def achievement():
    return render_template('achievement.html')
+
+@app.route('/forum') # nota
+def forum():
+   return render_template('forum.html')
 
 if __name__ == "__main__":
    with app.app_context():

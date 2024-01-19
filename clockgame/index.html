@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @font-face {
+      font-family: Roboto;
+      src: url(Roboto-Thin.ttf);
+    }
+
+    body {
+      font-family: Roboto;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      align-items: center;
+      position: fixed;
+    }
+
+    #main {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    @media (max-aspect-ratio: 1/1) {
+      #main {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      #form {
+        font-size: 5vw;
+      }
+
+      input {
+        font-size: 5vw;
+      }
+
+      select {
+        font-size: 3vw;
+      }
+
+      small {
+        font-size: 3vw;
+      }
+
+      svg {
+        max-width: 100%;
+        max-width: 60vh;
+      }
+    }
+
+    @media not (max-aspect-ratio: 1/1) {
+      #main {
+        flex-direction: row;
+        height: 100%;
+      }
+
+      #form {
+        font-size: 5vh;
+      }
+
+      input {
+        font-size: 5vh;
+      }
+
+      select {
+        font-size: 3vh;
+      }
+
+      small {
+        font-size: 3vh;
+      }
+
+      svg {
+        height: 100%;
+        max-height: 60vh;
+      }
+    }
+
+    #footer {
+      padding: 1em;
+    }
+
+    #form {
+      padding: 1em;
+      text-align: center;
+      justify-self: center;
+    }
+
+    input[type=number] {
+      width: 2em;
+    }
+
+    #score {
+      white-space: nowrap;
+    }
+
+    svg text {
+      user-select: none;
+      pointer-events: none;
+    }
+
+    svg circle {
+      pointer-events: none;
+    }
+
+    .shake {
+      animation: shake 0.2s ease-in-out 0s 2;
+    }
+
+    @keyframes shake {
+      0% {
+        margin-left: 0rem;
+      }
+
+      25% {
+        margin-left: 0.5rem;
+      }
+
+      75% {
+        margin-left: -0.5rem;
+      }
+
+      100% {
+        margin-left: 0rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="main">
+    <svg id="svg" viewBox="-100 -100 200 200" stroke="#000" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="form">
+      <div><select id="levelPicker" onChange="kidsClock.changeLevel()">
+          <option id="level--0" value="0">level 1</option>
+          <option id="level--1" value="1" disabled>level 2</option>
+          <option id="level--2" value="2" disabled>level 3</option>
+          <option id="level--3" value="3" disabled>level 4</option>
+          <option id="level--4" value="4" disabled>level 5</option>
+          <option id="level--5" value="5" disabled>level 6</option>
+          <option id="level--6" value="6" disabled>level 7</option>
+          <option id="level--7" value="7" disabled>level 8</option>
+          <option id="level--8" value="8" disabled>level 9</option>
+        </select></div>
+      <div>
+        <nobr>Time?</nobr>
+      </div>
+      <form onSubmit="kidsClock.validateInput(); return false;">
+        <div>
+          <input id="inputHour" type="number" pattern="[0-9]*" min="1" max="12" placeholder="hh" autofocus>:<input
+            id="inputMin" type="number" pattern="[0-9]*" min="0" max="59" placeholder="mm">
+          <input type="submit" value="ok">
+        </div>
+      </form>
+      <div id="score"></div>
+    </div>
+  </div>
+  <small id="footer">A game to help kids learn how to read analog clocks. 🇨🇭 Swiss made. <a
+      href="https://github.com/alokmenghrajani/kidsclock">Open Source</a>. No ads or tracking.</small>
+  <script src="svgjs/svg.min.js"></script>
+  <script>
+    // TODO:
+    // - consider making angularTime number of seconds since noon/midnight.
+    // - rewrite validate input, use angularTime to simplify delta calculation.
+    // - improve UI
+    //   - on mobile, make it so that the soft keyboard doesn't hide the clock.
+    //   - on desktop, make it so that either input fields are always in focus.
+    // - confetti or something when you switch from one level to another
+    // - figure out why iOS Safari freezes up after the incorrect entry animation plays.
+    // - looks ugly on desktop Safari.
+
+    const LEVELS = 9;
+
+    class KidsClock {
+      constructor() {
+        this.level = 0;
+        this.maxLevel = 0;
+        this.score = Array(LEVELS).fill(0)
+        this.drag = false;
+
+        // We track time in "angularTime", which is essentially the number of degrees the
+        // minute hand has moved since 12:00. There's 4320 angularTime degrees per half-day.
+        // AngularTime makes handling clicks and touch events easier.
+        this.angularTime = 0;
+
+        // List of elements which needs to be redrawn when the time changes
+        this.elements = [];
+
+        // Draw the elements which don't change when the time changes or between levels
+        this.draw = SVG(svg);
+        this.draw.circle(180).center(0, 0);
+        this.draw.on('mousemove', e => this.eventMove(e));
+        this.draw.on('touchmove', e => this.eventMove(e));
+        this.draw.on('mouseup', e => this.eventUp(e));
+        this.draw.on('touchend', e => this.eventUp(e));
+      }
+
+      setAngularTime(t) {
+        this.angularTime = t % (12 * 360);
+        if (this.angularTime < 0) {
+          // If angularTime was negative, modulo remains negative.
+          this.angularTime += 12 * 360;
+        }
+        this.update(this.angularTime);
+        inputHour.value = "";
+        inputHour.focus();
+        inputMin.value = "";
+      }
+
+      incrementScore() {
+        this.score[this.level]++;
+        if (this.score[this.level] > 5) {
+          this.score[this.level] = 5;
+        }
+        if (this.score[this.level] == 5) {
+          this.level++;
+          if (this.level > (LEVELS - 1)) {
+            this.level = LEVELS - 1;
+          }
+        }
+        if (this.level > this.maxLevel) {
+          // TODO: show confetti
+          this.maxLevel = this.level;
+        }
+
+        localStorage.setItem('score', JSON.stringify(this.score));
+        localStorage.setItem('level', this.level);
+        localStorage.setItem('maxLevel', this.maxLevel);
+        this.reload();
+      }
+
+      changeLevel() {
+        this.level = levelPicker.value | 0;
+        localStorage.setItem('level', this.level);
+        this.reload();
+      }
+
+      reload() {
+        levelPicker.value = this.level;
+        for (let i = 0; i <= this.maxLevel; i++) {
+          document.getElementById("level--" + i).disabled = false;
+        }
+
+        const icons = ["⭐", "😛", "🍄", "🐚", "🌻", "🦋", "🧸", "🏆", "🐐"];
+        score.innerText = Array(this.score[this.level]).fill(icons[this.level]).join('');
+
+        switch (this.level) {
+          case 0:
+            {
+              // hours and minutes on clock face.
+              this.minutesText = true;
+              this.minutesDotStyle = "style-1";
+              this.hoursText = "arabic";
+
+              // hours and minutes highlight.
+              this.minutesHighlight = true;
+              this.hoursHighlight = true;
+
+              // minutes/hours are color coded.
+              this.colors = true;
+
+              // minutes are 0, 15, 30, or 45.
+              const hour = (Math.random() * 12) | 0;
+              const min = ((Math.random() * 4) | 0) * 15;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 1:
+            {
+              // hours and minutes on clock face.
+              this.minutesText = true;
+              this.minutesDotStyle = "style-1";
+              this.hoursText = "arabic";
+
+              // hours and minutes highlight.
+              this.minutesHighlight = true;
+              this.hoursHighlight = true;
+
+              // minutes/hours are color coded.
+              this.colors = true;
+
+              // minutes are 0, 5, 10, 15, ...
+              const hour = (Math.random() * 12) | 0;
+              const min = ((Math.random() * 12) | 0) * 5;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 2:
+            {
+              // hours and minutes on clock face.
+              this.minutesText = true;
+              this.minutesDotStyle = "style-2";
+              this.hoursText = "arabic";
+
+              // no more highlights
+              this.minutesHighlight = false;
+              this.hoursHighlight = false;
+
+              // minutes/hours are color coded.
+              this.colors = true;
+
+              // minutes can be anything
+              const hour = (Math.random() * 12) | 0;
+              const min = (Math.random() * 60) | 0;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 3:
+            {
+              // no more minutes on the clock face.
+              this.minutesText = false;
+              this.minutesDotStyle = "style-1";
+
+              // everything else is the same as previous level
+              this.hoursText = "arabic";
+              this.minutesHighlight = false;
+              this.hoursHighlight = false;
+              this.colors = true;
+              const hour = (Math.random() * 12) | 0;
+              const min = (Math.random() * 60) | 0;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 4:
+            {
+              // roman numerals
+              this.hoursText = "roman";
+
+              // everything else is the same as previous level
+              this.minutesText = false;
+              this.minutesDotStyle = "style-1";
+              this.minutesHighlight = false;
+              this.hoursHighlight = false;
+              this.colors = true;
+              const hour = (Math.random() * 12) | 0;
+              const min = (Math.random() * 60) | 0;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 5:
+            {
+              // only 12, 3, 6, 9 for hours
+              this.hoursText = "arabic-2";
+
+              // no more color coding
+              this.colors = false;
+
+              // everything else is the same as previous level
+              this.minutesText = false;
+              this.minutesDotStyle = "style-1";
+              this.minutesHighlight = false;
+              this.hoursHighlight = false;
+              const hour = (Math.random() * 12) | 0;
+              const min = (Math.random() * 60) | 0;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 6:
+            {
+              // only 12 for hours
+              this.hoursText = "arabic-3";
+
+              // everything else is the same as previous level
+              this.colors = false;
+              this.minutesText = false;
+              this.minutesDotStyle = "style-1";
+              this.minutesHighlight = false;
+              this.hoursHighlight = false;
+              const hour = (Math.random() * 12) | 0;
+              const min = (Math.random() * 60) | 0;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 7:
+            {
+              // only 12 for hours and different style for minute dots
+              this.hoursText = "arabic-3";
+              this.minutesDotStyle = "style-3";
+
+              // everything else is the same as previous level
+              this.colors = false;
+              this.minutesText = false;
+              this.minutesHighlight = false;
+              this.hoursHighlight = false;
+
+              // minutes are 0, 15, 30, or 45.
+              const hour = (Math.random() * 12) | 0;
+              const min = ((Math.random() * 4) | 0) * 15;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          case 8:
+            {
+              // only 12 for hours and different style for minute dots
+              this.hoursText = "arabic-2";
+              this.minutesDotStyle = "style-4";
+
+              // everything else is the same as previous level
+              this.colors = false;
+              this.minutesText = false;
+              this.minutesHighlight = false;
+              this.hoursHighlight = false;
+
+              // minutes can be anything
+              const hour = (Math.random() * 12) | 0;
+              const min = (Math.random() * 60) | 0;
+              this.setAngularTime(hour * 360 + min * 6);
+              break;
+            }
+          default:
+            throw new Error("unknown level: " + this.level);
+        }
+      }
+
+      validateInput() {
+        const minAngle = this.angularTime % 360;
+        const min = Math.floor(minAngle / 6);
+        const hourAngle = this.angularTime / 12;
+        let hour = Math.floor(hourAngle / 30);
+
+        const delta1 = Math.abs((hour * 60 + min) - (inputHour.value * 60 + (inputMin.value | 0)));
+        const delta2 = Math.abs(720 - delta1);
+        const delta = Math.min(delta1, delta2);
+        debugger;
+        if (delta == 0) {
+          this.incrementScore();
+          return;
+        }
+
+        // On the last level, we allow a bit of wiggle since the clock face is bland.
+        if ((this.minutesDotStyle == "style-4") && (delta <= 5)) {
+          this.incrementScore();
+          return;
+        }
+
+        // Error animation
+        form.className = "shake";
+        setTimeout(() => {
+          form.className = "";
+          this.setAngularTime(this.angularTime);
+        }, 400);
+      }
+
+      update(angularTime) {
+        // remove elements which will get recreated
+        for (let i = 0; i < this.elements.length; i++) {
+          this.elements[i].remove();
+        }
+        this.elements = [];
+
+        const minAngle = angularTime % 360;
+        const min = Math.floor(minAngle / 6);
+
+        const hourAngle = angularTime / 12;
+        const hour = Math.floor(hourAngle / 30);
+
+        // draw minutes, from 5 to 60
+        if (this.minutesText) {
+          for (let i = 0; i < 60; i += 5) {
+            let t = i;
+            if (i == 0) {
+              t = 60;
+            }
+            if ((this.level >= 2) && (i == 5)) {
+              t = "05";
+            }
+            if ((this.level >= 3) && (i == 0)) {
+              t = "";
+            }
+            const text = this.draw.text(t)
+              .font({ size: 8 })
+              .center(0, 0)
+              .rotate(i * 6, 0, 76)
+              .translate(0, -76)
+              .stroke('none');
+            if (this.colors) {
+              text.fill('#0a0');
+            } else {
+              text.fill('#000');
+            }
+            if ((i >= 20) && (i <= 40)) {
+              // rotate 20 thru 40 for better legibility
+              text.rotate(180);
+            }
+            this.elements.push(text);
+          }
+        }
+
+        // draw dots and lines for each minute
+        if (this.minutesDotStyle == "style-3") {
+          for (let i = 0; i < 12; i++) {
+            const el = this.draw.circle(2)
+              .center(63, 0)
+              .rotate(i * 30, 0, 0)
+              .stroke('none');
+            if (this.colors) {
+              el.fill('#0a0');
+            } else {
+              el.fill('#000');
+            }
+            this.elements.push(el);
+          }
+        } else if (this.minutesDotStyle == "style-4") {
+          for (let i = 0; i < 4; i++) {
+            const el = this.draw.circle(2)
+              .center(63, 0)
+              .rotate(i * 90, 0, 0)
+              .stroke('none');
+            if (this.colors) {
+              el.fill('#0a0');
+            } else {
+              el.fill('#000');
+            }
+            this.elements.push(el);
+          }
+        } else {
+          for (let i = 0; i < 60; i++) {
+            let el
+            if (i % 5 == 0) {
+              if ((i == 0) && (this.minutesDotStyle == "style-2")) {
+                el = this.draw.polygon().rotate(-90 + i * 6, 0, 0);
+                el.plot([[60, 0], [66, -2], [66, 2]]);
+              } else {
+                el = this.draw.line(60, 0, 66, 0).rotate(-90 + i * 6, 0, 0);
+              }
+              if (this.colors) {
+                if (this.minutesHighlight) {
+                  if (i == min) {
+                    el.stroke({ width: 2, color: '#0a0' });
+                  } else {
+                    el.stroke({ width: 2, color: '#afa' });;
+                  }
+                } else {
+                  el.stroke({ width: 2, color: '#0a0' });
+                }
+              } else {
+                el.stroke({ width: 2, color: '#000' });
+              }
+            } else {
+              el = this.draw.circle(2)
+                .center(63, 0)
+                .rotate(-90 + i * 6, 0, 0)
+                .stroke('none');
+              if (this.colors) {
+                if (this.minutesHighlight) {
+                  if (i == min) {
+                    el.fill('#0a0');
+                  } else {
+                    el.fill('#afa');
+                  }
+                } else {
+                  el.fill('#0a0');
+                }
+              } else {
+                el.fill('#000');
+              }
+            }
+            this.elements.push(el);
+          }
+        }
+
+        // draw hour text
+        if (this.hoursText == "arabic") {
+          for (let i = 0; i < 12; i++) {
+            let t = i;
+            if (i == 0) {
+              t = 12;
+            }
+
+            const l = this.minutesText ? 50 : 77;
+            const text = this.draw.text(t)
+              .center(0, 0)
+              .rotate(i * 30, 0, l)
+              .translate(0, -l)
+              .rotate(-i * 30, 0, 0)
+              .stroke('none');
+            if (this.colors) {
+              if (this.minutesHighlight) {
+                if (i == hour) {
+                  text.fill('#00a');
+                } else {
+                  text.fill('#aaf');
+                }
+              } else {
+                text.fill('#00a');
+              }
+            } else {
+              text.fill('#000');
+            }
+            this.elements.push(text);
+          }
+        } else if (this.hoursText == "arabic-2") {
+          for (let i = 0; i < 4; i++) {
+            let t = i * 3;
+            if (i == 0) {
+              t = 12;
+            }
+
+            const l = this.minutesText ? 50 : 77;
+            const text = this.draw.text(t)
+              .center(0, 0)
+              .rotate(i * 90, 0, l)
+              .translate(0, -l)
+              .rotate(-i * 90, 0, 0)
+              .stroke('none');
+            if (this.colors) {
+              if (this.minutesHighlight) {
+                if (i == hour) {
+                  text.fill('#00a');
+                } else {
+                  text.fill('#aaf');
+                }
+              } else {
+                text.fill('#00a');
+              }
+            } else {
+              text.fill('#000');
+            }
+            this.elements.push(text);
+          }
+        } else if (this.hoursText == "arabic-3") {
+          const l = this.minutesText ? 50 : 77;
+          const text = this.draw.text("12")
+            .center(0, 0)
+            .translate(0, -l)
+            .stroke('none');
+          if (this.colors) {
+            if (this.minutesHighlight) {
+              if (i == hour) {
+                text.fill('#00a');
+              } else {
+                text.fill('#aaf');
+              }
+            } else {
+              text.fill('#00a');
+            }
+          } else {
+            text.fill('#000');
+          }
+          this.elements.push(text);
+        } else if (this.hoursText == "roman") {
+          const t = ["XII", "III", "VI", "IX"];
+          for (let i = 0; i < 4; i++) {
+            const l = this.minutesText ? 50 : 77;
+            const text = this.draw.text(t[i])
+              .center(0, 0)
+              .rotate(i * 90, 0, l)
+              .translate(0, -l)
+              .stroke('none');
+            text.fill('#00a');
+            this.elements.push(text);
+          }
+        }
+
+        // draw minute hand
+        const minHand = this.drawHand(3, 60, 6).rotate(-90 + minAngle, 0, 0);
+        if (this.colors) {
+          minHand.fill('#0a0');
+        } else {
+          minHand.fill('#aaa');
+        }
+        minHand.on('mousedown', e => this.eventDown(e, "min"));
+        minHand.on('touchstart', e => this.eventDown(e, "min"));
+        this.elements.push(minHand);
+
+        // draw hour hand
+        const hourHand = this.drawHand(6, 45, 6).rotate(-90 + hourAngle, 0, 0);
+        if (this.colors) {
+          hourHand.fill('#00a');
+        } else {
+          hourHand.fill('#666');
+        }
+        hourHand.on('mousedown', e => this.eventDown(e, "hour"));
+        hourHand.on('touchstart', e => this.eventDown(e, "hour"));
+        this.elements.push(hourHand);
+
+        // draw pin which holds the hands in place
+        this.elements.push(this.draw.circle(5).center(0, 0).fill('#333').stroke('none'));
+      }
+
+      drawHand(width, length, tail) {
+        var polygon = this.draw.polygon().stroke('none');
+        polygon.plot([[-tail, -width / 2], [length * 5 / 6, -width], [length, 0], [length * 5 / 6, width], [-tail, width / 2]])
+        return polygon;
+      }
+
+      eventMove(e) {
+        if (!this.drag) {
+          return;
+        }
+        const pt = DOMPoint.fromPoint(this.draw);
+        pt.x = e.x;
+        pt.y = e.y;
+        const pos = pt.matrixTransform(svg.getScreenCTM().inverse())
+
+        // calculate angular difference in radians
+        const angle1 = Math.atan2(this.prevEventPosition.y, this.prevEventPosition.x);
+        const angle2 = Math.atan2(pos.y, pos.x);
+        let d = angle2 - angle1;
+
+        // we want a value between -π and π, so we know if we are adding or
+        // removing time.
+        d = d % (2 * Math.PI);
+        if (d > Math.PI) {
+          d -= 2 * Math.PI;
+        }
+        if (d < -Math.PI) {
+          d += 2 * Math.PI;
+        }
+
+        // convert radians into angularTime
+        let delta = d * 180 / Math.PI;
+        if (this.drag == "hour") {
+          delta *= 12;
+        }
+        this.tempAngularTime = this.tempAngularTime + delta;
+
+        this.tempAngularTime = this.tempAngularTime % (12 * 360);
+        if (this.tempAngularTime < 0) {
+          // If tempAngularTime was negative, modulo remains negative.
+          this.tempAngularTime += 12 * 360;
+        }
+
+        // TODO: only bother rendering if there's a significant difference.
+        // we'll need to track the angularTime when the last render happened.
+        this.prevEventPosition = pos;
+        this.update(this.tempAngularTime);
+      }
+
+      // When we get a mouseUp or touchUp event, we revert to how things were before the
+      // move event happened.
+      eventUp(e) {
+        this.drag = false;
+        this.update(this.angularTime);
+      }
+
+      // When we get a mouseDown or touchDown event, we record the current position of
+      // the clock & event.
+      eventDown(e, hand) {
+        this.drag = hand;
+        this.tempAngularTime = this.angularTime;
+        // record current event position so we can compute deltas when the mouse or touch moves.
+        // We need everything in the svg's frame of reference.
+        const pt = DOMPoint.fromPoint(this.draw);
+        pt.x = e.x;
+        pt.y = e.y;
+        this.prevEventPosition = pt.matrixTransform(svg.getScreenCTM().inverse());
+      }
+    }
+
+    kidsClock = new KidsClock();
+
+    // Read level+score from local storage
+    const l = localStorage.getItem("level");
+    if (l) {
+      kidsClock.level = l | 0;
+    }
+
+    const m = localStorage.getItem("maxLevel");
+    if (m) {
+      kidsClock.maxLevel = m | 0;
+    }
+
+    const s = localStorage.getItem("score");
+    if (s) {
+      kidsClock.score = JSON.parse(s);
+    }
+    kidsClock.reload();
+  </script>
+</body>
+
+</html>
