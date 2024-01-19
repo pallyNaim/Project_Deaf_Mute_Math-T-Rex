@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 # MySQL database configuration
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost/mathlearning'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mathlearning.db'
 
 db = SQLAlchemy(app)
 
@@ -23,6 +23,9 @@ def homepage():
 def gameTime():
    return render_template('clockgame.html')
 
+@app.route('/gameMoney') # Homepage
+def gameMoney():
+   return render_template('moneyGame.html')
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
    if request.method == 'POST':
