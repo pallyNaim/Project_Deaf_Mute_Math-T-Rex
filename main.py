@@ -19,6 +19,10 @@ class User(db.Model):
 def homepage():
    return render_template('index.html')
 
+@app.route('/gameTime') # Homepage
+def gameTime():
+   return render_template('clockgame.html')
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
    if request.method == 'POST':
@@ -46,11 +50,11 @@ def login():
 
 @app.route('/noteMoney') # nota
 def noteT():
-   return render_template('noteMoney.html')
+   return render_template('note/noteMoney.html')
 
 @app.route('/noteTime') # nota
 def noteM():
-   return render_template('noteTime.html')
+   return render_template('note/noteTime.html')
 
 @app.route('/quizOption')
 def quiz():
