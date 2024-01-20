@@ -183,7 +183,7 @@ function cashMoneyGame () {
       && angpow.y <= (playerOne.y + 32)
     ) {
       $(money).get(0).play()
-      moneyP1 += 2
+      moneyP1 += 5
       playerOne.speed -= 50
       respawnAngpow()
     }
@@ -194,7 +194,7 @@ function cashMoneyGame () {
       && angpow.y <= (playerTwo.y + 32)
     ) {
       $(money).get(0).play()
-      moneyP2 += 2
+      moneyP2 += 5
       playerTwo.speed -= 50
       respawnAngpow()
     }
@@ -279,19 +279,19 @@ function cashMoneyGame () {
     ctx.font = '22px Arial Black'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
-    ctx.fillText('P1 SCORE: $' + moneyP1 + '              P2 SCORE: $' + moneyP2, canvas.width / 6, 0)
+    ctx.fillText('P1 MARKAH: RM' + moneyP1 + '              P2 MARKAH: RM' + moneyP2, canvas.width / 6, 0)
   }
 
   // change content of word banner when timer runs out
   function gameOver () {
     if (moneyP1 > moneyP2) {
-      banner.textContent = 'P1 WINS WITH $' + moneyP1 + '!'
+      banner.textContent = 'P1 MENANG DENGAN RM' + moneyP1 + '!'
       $('#banner').css('font-size', '50px')
     } else if (moneyP2 > moneyP1) {
-      banner.textContent = 'P2 WINS WITH $' + moneyP2 + '!'
+      banner.textContent = 'P2 MENANG DENGAN RM' + moneyP2 + '!'
       $('#banner').css('font-size', '50px')
     } else {
-      banner.textContent = 'DRAW!'
+      banner.textContent = 'SERI!'
       $('#banner').css('font-size', '100px')
     }
     $('canvas').remove()

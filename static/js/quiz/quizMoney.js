@@ -171,8 +171,8 @@ function showAnswer() {
     incorrectAnswersHtml += `
       <p>
         <strong>Question:</strong> ${incorrectAnswers[i].question}<br>
-        <strong>Your Answer:</strong> ${incorrectAnswers[i].incorrectAnswer}<br>
-        <strong>Correct Answer:</strong> ${incorrectAnswers[i].correctAnswer}
+        <strong>Your Answer:</strong> <span style="color: red;">${incorrectAnswers[i].incorrectAnswer}</span><br>
+        <strong>Correct Answer:</strong> <span style="color: green;">${incorrectAnswers[i].correctAnswer}</span>
       </p>
     `;
   }
@@ -184,6 +184,7 @@ function showAnswer() {
     <button class="custom-button" onclick="redirectBack()">Back to Quiz Money</button>
   `;
 }
+
 
 function redirectBack() {
   // Redirect back to quizMoney.html
