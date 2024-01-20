@@ -55,9 +55,33 @@ def login():
 def noteT():
    return render_template('note/noteMoney.html')
 
+@app.route('/noteM1') # nota
+def noteM1():
+   return render_template('note/noteM1.html')
+
+@app.route('/noteM2') # nota
+def noteM2():
+   return render_template('note/noteM2.html')
+
+@app.route('/noteM3') # nota
+def noteM3():
+   return render_template('note/noteM3.html')
+
 @app.route('/noteTime') # nota
 def noteM():
    return render_template('note/noteTime.html')
+
+@app.route('/noteT1') # nota
+def noteT1():
+   return render_template('note/noteT1.html')
+
+@app.route('/noteT2') # nota
+def noteT2():
+   return render_template('note/noteT2.html')
+
+@app.route('/noteT3') # nota
+def noteT3():
+   return render_template('note/noteT3.html')
 
 @app.route('/quizOption')
 def quiz():
