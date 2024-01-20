@@ -83,3 +83,33 @@ function openForm() {
 function closeForm() {
     document.getElementById("myForm").style.display = "none";
 }
+
+   var currentValue = 0;
+        var intervalId;
+
+        function startRealTimeUpdate() {
+            // Reset the progress bar and current value
+            currentValue = 0;
+            var progressBar = document.getElementById('file');
+            progressBar.value = 0;
+            progressBar.innerText = '0%';
+
+            // Start updating the progress bar in real-time
+            intervalId = setInterval(increaseProgress, 500); // Adjust the interval as needed (in milliseconds)
+        }
+
+        function increaseProgress() {
+            var progressBar = document.getElementById('file');
+
+            // Increase the value by a certain amount (e.g., 5)
+            currentValue += 5;
+
+            // Ensure the new value does not exceed the maximum value (100)
+            if (currentValue <= 100) {
+                progressBar.value = currentValue;
+                progressBar.innerText = currentValue + '%';
+            } else {
+                // Stop the real-time update when it reaches 100%
+                clearInterval(intervalId);
+            }
+        }

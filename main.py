@@ -3,7 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Email, Length
-from flask_login import login_user, LoginManager, UserMixin
+from flask_login import login_user, LoginManager, UserMixin, login_required, current_user
+from datetime import datetime
 import os
 
 app = Flask(__name__)
@@ -16,6 +17,7 @@ db = SQLAlchemy(app)
 # Flask-Login requires to set up a LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 
 # User model should inherit from UserMixin
@@ -25,15 +27,30 @@ class User(UserMixin, db.Model):
         email = db.Column(db.String(120), unique=True, nullable=False)
         password = db.Column(db.String(128), nullable=False)
         user_type = db.Column(db.String(64), nullable=False)
+        messages = db.relationship('Message', backref='author', lazy='dynamic')
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(500), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def check_password(self, password):
+        return self.password == password
+
+    def set_password(self, password):
+        self.password = password
 
 
 with app.app_context():
     # Database Initialization
     try:
-        db.drop_all()
         db.create_all()
     except Exception as e:
         print(f"Database initialization error: {e}")
+
+
+
 
 
 class RegistrationForm(FlaskForm):
@@ -83,7 +100,7 @@ def signup():
                 db.session.add(new_user)
                 db.session.commit()
                 flash('Registration successful!', 'success')
-                return redirect(url_for('homepage'))
+                return render_template('index.html')
             except Exception as e:
                 print(e)
                 db.session.rollback()
@@ -106,7 +123,6 @@ def login():
 
         user = User.query.filter_by(username=username).first()
 
-        # if a user is found and password is correct
         if user and user.password == password:
             login_user(user)
             flash('Login successful!', 'success')
@@ -116,6 +132,16 @@ def login():
             return render_template('logIn.html')
 
     return render_template('logIn.html')
+
+from flask_login import logout_user
+
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('diveIn'))
+
 
 
 @app.route('/noteMoney')  # nota
@@ -178,9 +204,11 @@ def quizOverall():
     return render_template('quiz/quizOverall.html')
 
 
-@app.route('/profile')  # nota
+@app.route('/profile')  # profile
+@login_required
 def profile():
-    return render_template('profile.html')
+    user = User.query.filter_by(id=current_user.id).first()
+    return render_template('profile.html', user=user)
 
 
 @app.route('/achievement')  # nota
@@ -188,9 +216,17 @@ def achievement():
     return render_template('achievement.html')
 
 
-@app.route('/forum')  # nota
+@app.route('/forum', methods=['GET', 'POST'])
+@login_required
 def forum():
-    return render_template('forum.html')
+    if request.method == 'POST':
+        content = request.form.get('message')
+        new_message = Message(content=content, user_id=current_user.id)
+        db.session.add(new_message)
+        db.session.commit()
+        return redirect(url_for('forum'))
+    messages = Message.query.order_by(Message.timestamp.desc()).all()
+    return render_template('forum.html', messages=messages)
 
 
 if __name__ == "__main__":

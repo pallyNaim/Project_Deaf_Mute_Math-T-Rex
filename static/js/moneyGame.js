@@ -279,7 +279,7 @@ function cashMoneyGame () {
     ctx.font = '22px Arial Black'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
-    ctx.fillText('P1 MARKAH: RM' + moneyP1 + '              P2 MARKAH: RM' + moneyP2, canvas.width / 6, 0)
+    ctx.fillText('P1 MARKAH: RM' + moneyP1 + 'P2 MARKAH: RM' + moneyP2, canvas.width / 6, 0)
   }
 
   // change content of word banner when timer runs out
