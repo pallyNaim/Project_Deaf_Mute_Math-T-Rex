@@ -175,7 +175,7 @@ def quizTime():
 
 @app.route('/quizOverall')
 def quizOverall():
-    return render_template('quizOverall.html')
+    return render_template('quiz/quizOverall.html')
 
 
 @app.route('/profile')  # nota
